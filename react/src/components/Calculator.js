@@ -51,12 +51,26 @@ const Calculator = () => {
     } else if (operation === '/') {
       if (currentValue === 0) {
         setDisplay('Error');
+        setPreviousValue(null);
+        setOperation(null);
+        setWaitingForSecondValue(false);
         return;
       }
       result = previousValue / currentValue;
     }
 
-    setDisplay(result.toString());
+    // Handle potential overflow or very large numbers
+    if (!isFinite(result)) {
+      setDisplay('Error');
+      setPreviousValue(null);
+      setOperation(null);
+      setWaitingForSecondValue(false);
+      return;
+    }
+
+    // Format result to avoid floating-point precision issues
+    const formattedResult = Number(result.toFixed(10)).toString();
+    setDisplay(formattedResult);
     setPreviousValue(null);
     setOperation(null);
     setWaitingForSecondValue(false);
