@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Button, Grid, Paper, TextField, Typography } from '@mui/material';
+import axios from 'axios';
 
 const Calculator = () => {
   const [display, setDisplay] = useState('0');
   const [previousValue, setPreviousValue] = useState(null);
   const [operation, setOperation] = useState(null);
   const [waitingForSecondValue, setWaitingForSecondValue] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleNumberClick = (value) => {
     if (display === '0' && value !== '.') {
@@ -34,46 +37,37 @@ const Calculator = () => {
     setPreviousValue(null);
     setOperation(null);
     setWaitingForSecondValue(false);
+    setError('');
   };
 
-  const calculateResult = () => {
+  const calculateResult = async () => {
     if (!previousValue || !operation) return;
 
     const currentValue = parseFloat(display);
-    let result = 0;
+    setLoading(true);
+    setError('');
 
-    if (operation === '+') {
-      result = previousValue + currentValue;
-    } else if (operation === '-') {
-      result = previousValue - currentValue;
-    } else if (operation === '*') {
-      result = previousValue * currentValue;
-    } else if (operation === '/') {
-      if (currentValue === 0) {
-        setDisplay('Error');
-        setPreviousValue(null);
-        setOperation(null);
-        setWaitingForSecondValue(false);
-        return;
-      }
-      result = previousValue / currentValue;
-    }
+    try {
+      const response = await axios.post('/api/calculate', {
+        num1: previousValue,
+        num2: currentValue,
+        operation: operation
+      });
 
-    // Handle potential overflow or very large numbers
-    if (!isFinite(result)) {
+      const result = response.data.result;
+      setDisplay(result.toString());
+      setPreviousValue(null);
+      setOperation(null);
+      setWaitingForSecondValue(false);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Calculation error');
       setDisplay('Error');
       setPreviousValue(null);
       setOperation(null);
       setWaitingForSecondValue(false);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    // Format result to avoid floating-point precision issues
-    const formattedResult = Number(result.toFixed(10)).toString();
-    setDisplay(formattedResult);
-    setPreviousValue(null);
-    setOperation(null);
-    setWaitingForSecondValue(false);
   };
 
   const buttons = [
@@ -114,6 +108,11 @@ const Calculator = () => {
             },
           }}
         />
+        {error && (
+          <Typography variant="body2" color="error" align="center" sx={{ marginBottom: 1 }}>
+            {error}
+          </Typography>
+        )}
         <Grid container spacing={1.5} justifyContent="center">
           {buttons.map((btn) => (
             <Grid item key={btn} xs={3}>
@@ -121,6 +120,7 @@ const Calculator = () => {
                 variant={btn === '=' ? 'contained' : 'outlined'}
                 color={['+', '-', '*', '/'].includes(btn) ? 'secondary' : 'primary'}
                 fullWidth
+                disabled={loading && btn === '='}
                 sx={{
                   height: { xs: 50, sm: 60 },
                   fontSize: { xs: '1rem', sm: '1.2rem' },
