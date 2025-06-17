@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const apiRoutes = require('./apiRoutes');
+console.log(1);
 
 // Для работы с express
 const app = express();
